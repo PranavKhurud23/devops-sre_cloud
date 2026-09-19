@@ -14,11 +14,27 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Start LocalStack Container
-        uses: localstack/setup-localstack@v0.2.2
-        with:
-          image-tag: 'latest'
-          install-awslocal: 'true'
+      - name: Start LocalStack Docker Container
+        run: |
+          docker run -d \
+            --name localstack_main \
+            -p 4566:4566 \
+            -p 4510-4559:4510-4559 \
+            -e DEBUG=1 \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            localstack/localstack:3.4.0
+
+      - name: Install awslocal CLI
+        run: |
+          pip install awscli-local
+
+      - name: Wait for LocalStack to be ready
+        run: |
+          echo "Waiting for LocalStack..."
+          until curl -s http://localhost:4566/_localstack/health | grep -q '"s3": "running"\|"s3": "available"'; do
+            sleep 2
+          done
+          echo "LocalStack is ready!"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3

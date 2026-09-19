@@ -1,4 +1,5 @@
 terraform {
+  required_version = ">= 1.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -14,18 +15,22 @@ provider "aws" {
   skip_credentials_validation = true
   skip_metadata_api_check     = true
   skip_requesting_account_id  = true
+  
+  # CRITICAL: Forces path-style URLs (http://127.0.0.1:4566/bucket) instead of subdomains
+  s3_use_path_style           = true 
 
   endpoints {
-    s3       = "http://localhost:4566"
-    sqs      = "http://localhost:4566"
-    dynamodb = "http://localhost:4566"
+    s3  = "http://127.0.0.1:4566"
+    sqs = "http://127.0.0.1:4566"
   }
 }
 
+# AWS S3 Bucket (Equivalent to GCP Cloud Storage Bucket)
 resource "aws_s3_bucket" "demo_bucket" {
   bucket = "devops-interview-demo-bucket"
 }
 
+# AWS SQS Queue (Equivalent to GCP Pub/Sub Subscription/Queue)
 resource "aws_sqs_queue" "demo_queue" {
   name                      = "devops-interview-queue"
   delay_seconds             = 0
@@ -34,9 +39,11 @@ resource "aws_sqs_queue" "demo_queue" {
 }
 
 output "s3_bucket_name" {
-  value = aws_s3_bucket.demo_bucket.id
+  value       = aws_s3_bucket.demo_bucket.id
+  description = "The name of the created S3 bucket"
 }
 
 output "sqs_queue_url" {
-  value = aws_sqs_queue.demo_queue.id
+  value       = aws_sqs_queue.demo_queue.id
+  description = "The URL of the created SQS queue"
 }

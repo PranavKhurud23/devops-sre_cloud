@@ -18,23 +18,22 @@ jobs:
         run: |
           docker run -d \
             --name localstack_main \
-            -p 4566:4566 \
-            -p 4510-4559:4510-4559 \
+            -p 127.0.0.1:4566:4566 \
             -e DEBUG=1 \
             -v /var/run/docker.sock:/var/run/docker.sock \
             localstack/localstack:3.4.0
 
       - name: Install awslocal CLI
-        run: |
-          pip install awscli-local
+        run: pip install awscli-local
 
-      - name: Wait for LocalStack to be ready
+      - name: Wait for LocalStack Readiness
         run: |
-          echo "Waiting for LocalStack..."
-          until curl -s http://localhost:4566/_localstack/health | grep -q '"s3": "running"\|"s3": "available"'; do
-            sleep 2
+          echo "Waiting for LocalStack services to be ready..."
+          until curl -s http://127.0.0.1:4566/_localstack/health | grep -q '"s3": "running"\|"s3": "available"'; do
+            echo "LocalStack is starting, waiting 3 seconds..."
+            sleep 3
           done
-          echo "LocalStack is ready!"
+          echo "LocalStack is fully active!"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -50,7 +49,9 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve
 
-      - name: Verify S3 & SQS in LocalStack
+      - name: Verify Created Resources
         run: |
-          awslocal s3 ls
-          awslocal sqs list-queues
+          echo "=== Listing S3 Buckets ==="
+          awslocal --endpoint-url=http://127.0.0.1:4566 s3 ls
+          echo "=== Listing SQS Queues ==="
+          awslocal --endpoint-url=http://127.0.0.1:4566 sqs list-queues
